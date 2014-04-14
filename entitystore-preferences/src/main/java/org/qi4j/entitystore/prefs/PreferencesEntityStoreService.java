@@ -18,6 +18,8 @@ import org.qi4j.api.concern.Concerns;
 import org.qi4j.api.mixin.Mixins;
 import org.qi4j.api.service.Activatable;
 import org.qi4j.api.service.ServiceComposite;
+import org.qi4j.library.locking.LockMixin;
+import org.qi4j.library.locking.LockingAbstractComposite;
 import org.qi4j.spi.entitystore.ConcurrentModificationCheckConcern;
 import org.qi4j.spi.entitystore.EntityStateVersions;
 import org.qi4j.spi.entitystore.EntityStore;
@@ -45,6 +47,6 @@ import org.qi4j.spi.entitystore.EntityStore;
 @Concerns( ConcurrentModificationCheckConcern.class )
 @Mixins( PreferencesEntityStoreMixin.class )
 public interface PreferencesEntityStoreService
-    extends EntityStore, ServiceComposite, EntityStateVersions, Activatable
+    extends EntityStore, ServiceComposite, EntityStateVersions, LockingAbstractComposite, Activatable
 {
 }

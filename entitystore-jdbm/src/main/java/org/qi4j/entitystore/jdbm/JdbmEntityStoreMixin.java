@@ -20,7 +20,13 @@ import jdbm.RecordManager;
 import jdbm.RecordManagerFactory;
 import jdbm.RecordManagerOptions;
 import jdbm.btree.BTree;
-import jdbm.helper.*;
+import jdbm.helper.ByteArrayComparator;
+import jdbm.helper.ByteArraySerializer;
+import jdbm.helper.LongSerializer;
+import jdbm.helper.MRU;
+import jdbm.helper.Serializer;
+import jdbm.helper.Tuple;
+import jdbm.helper.TupleBrowser;
 import jdbm.recman.CacheRecordManager;
 import org.qi4j.api.common.Optional;
 import org.qi4j.api.configuration.Configuration;
@@ -43,7 +49,12 @@ import org.qi4j.spi.entitystore.EntityNotFoundException;
 import org.qi4j.spi.entitystore.EntityStoreException;
 import org.qi4j.spi.service.ServiceDescriptor;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.util.Properties;
 import java.util.concurrent.locks.ReadWriteLock;
 
@@ -100,7 +111,7 @@ public class JdbmEntityStoreMixin
 
          byte[] serializedState = (byte[]) recordManager.fetch(stateIndex, serializer);
 
-         if (serializedState == null)
+         if (serializedState == null || serializedState.length == 0)
          {
             throw new EntityNotFoundException(entityReference);
          }
@@ -223,6 +234,13 @@ public class JdbmEntityStoreMixin
 
                         byte[] serializedState = (byte[]) recordManager.fetch(stateIndex, serializer);
 
+                        if(serializedState == null || serializedState.length == 0)
+                        {
+                           recordManager.delete(stateIndex);
+                           index.remove(id.getBytes("UTF-8"));
+                           continue;
+                        }
+
                         receiver.receive(new StringReader(new String(serializedState, "UTF-8")));
                      }
                   }
@@ -266,6 +284,11 @@ public class JdbmEntityStoreMixin
                         } // Skip this one
 
                         byte[] serializedState = (byte[]) recordManager.fetch(stateIndex, serializer);
+
+                        if(serializedState == null || serializedState.length == 0)
+                        {
+                           continue;
+                        }
 
                         receiver.receive(new String(serializedState, "UTF-8"));
                      }
@@ -332,7 +355,7 @@ public class JdbmEntityStoreMixin
 
             // Import went ok - continue
             recordManager.commit();
-
+            recordManager.close();
             lock.writeLock().lock();
             try
             {
